@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #83a4d4, #b6fbff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      transition: background 0.5s ease;
+    }
+    body.dark {
+      background: linear-gradient(to right, #232526, #414345);
+      color: white;
+    }
+    .weather-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      width: 350px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transition: background 0.5s ease, color 0.5s ease;
+    }
+    body.dark .weather-container {
+      background: #2c2c2c;
+      color: white;
+    }
+    input {
+      width: 70%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      padding: 8px 12px;
+      border: none;
+      background: #007BFF;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .weather-result {
+      margin-top: 20px;
+    }
+    .temp {
+      font-size: 2em;
+      margin: 10px 0;
+    }
+    img {
+      width: 60px;
+    }
+    /* Toggle Switch */
+    .toggle-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 10px;
+    }
+    .toggle-btn {
+      cursor: pointer;
+      padding: 6px 12px;
+      background: #f1f1f1;
+      border-radius: 20px;
+      font-size: 14px;
+      border: none;
+      transition: background 0.3s ease;
+    }
+    body.dark .toggle-btn {
+      background: #444;
+      color: white;
+    }
+    /* Forecast styling */
+    .forecast {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .forecast-day {
+      background: #f9f9f9;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    body.dark .forecast-day {
+      background: #3a3a3a;
+    }
+  </style>
+</head>
+<body>
+  <div class="weather-container">
+    <div class="toggle-container">
+      <button class="toggle-btn" onclick="toggleMode()">🌙 Dark</button>
+    </div>
+    <h2>🌤 Weather App</h2>
+    <input type="text" id="city" placeholder="Enter city name">
+    <button onclick="getWeather()">Get Weather</button>
+    <div class="weather-result" id="result"></div>
+    <div id="forecast"></div>
+  </div>
+
+  <script>
+    const apiKey = "YOUR_API_KEY"; // 🔑 Replace with your OpenWeather key
+    const body = document.body;
+    const toggleBtn = document.querySelector(".toggle-btn");
+
+    // Weather Function (Current + Forecast)
+    async function getWeather() {
+      const city = document.getElementById("city").value;
+      const resultDiv = document.getElementById("result");
+      const forecastDiv = document.getElementById("forecast");
+
+      if (!city) {
+        resultDiv.innerHTML = "<p>Please enter a city name!</p>";
+        return;
+      }
+
+      try {
+        // Current Weather
+        const response = await fetch(
+          https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric
+        );
+        const data = await response.json();
+
+        if (data.cod === "404") {
+          resultDiv.innerHTML = "<p>City not found!</p>";
+          forecastDiv.innerHTML = "";
+          return;
+        }
+
+        resultDiv.innerHTML = `
+          <h3>${data.name}, ${data.sys.country}</h3>
+          <div class="temp">${data.main.temp}°C</div>
+          <p>${data.weather[0].description}</p>
+          <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png" />
+        `;
+
+        // 5-day Forecast (every 24 hours from 12:00)
+        const forecastResponse = await fetch(
+          https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric
+        );
+        const forecastData = await forecastResponse.json();
+
+        const dailyData = forecastData.list.filter(item =>
+          item.dt_txt.includes("12:00:00")
+        );
+
+        forecastDiv.innerHTML = `
+          <h3>5-Day Forecast</h3>
+          <div class="forecast">
+            ${dailyData
+              .map(day => {
+                const date = new Date(day.dt_txt);
+                const options = { weekday: "short" };
+                return `
+                  <div class="forecast-day">
+                    <strong>${date.toLocaleDateString("en-US", options)}</strong>
+                    <br>
+                    <img src="https://openweathermap.org/img/wn/${day.weather[0].icon}.png" />
+                    <br>
+                    ${day.main.temp.toFixed(1)}°C
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = "<p>Error fetching data. Try again!</p>";
+        forecastDiv.innerHTML = "";
+      }
+    }
+
+    // Dark/Light Mode Toggle
+    function toggleMode() {
+      body.classList.toggle("dark");
+      if (body.classList.contains("dark")) {
+        toggleBtn.textContent = "☀ Light";
+      } else {
+        toggleBtn.textContent = "🌙 Dark";
+      }
+    }
+  </script>
+</body>
+</html>
